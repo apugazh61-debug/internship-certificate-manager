@@ -3,18 +3,26 @@ import User from '@/models/User';
 import { encrypt } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import sequelize from '@/lib/db';
+import { validateCoordinator } from '@/lib/coordinator-store';
 
 export async function POST(req: NextRequest) {
     try {
         const { email, password } = await req.json();
 
-        // Since DB connection might not work yet, allow a hardcoded fallback for setup verification
-        if (email === 'admin@example.com' && password === 'password') {
-            // Create session
-            const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-            const session = await encrypt({ user: { id: 1, email: 'admin@example.com', role: 'admin' }, expires });
+        // Admin super login
+        if (email === 'Pugazh@Alfiya' && password === 'PugazhAlfiya') {
+            const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const session = await encrypt({ user: { id: 1, email: 'Pugazh@Alfiya', role: 'admin' }, expires });
             (await cookies()).set('session', session, { expires, httpOnly: true });
+            return NextResponse.json({ success: true });
+        }
 
+        // Coordinator login — checks the live server-side store
+        const coordinator = validateCoordinator(email, password);
+        if (coordinator) {
+            const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const session = await encrypt({ user: { id: 99, email, role: 'coordinator' }, expires });
+            (await cookies()).set('session', session, { expires, httpOnly: true });
             return NextResponse.json({ success: true });
         }
 
@@ -36,7 +44,7 @@ export async function POST(req: NextRequest) {
 
         } catch (dbError) {
             console.error('DB Error:', dbError);
-            return NextResponse.json({ message: 'Database Unavailable. Use admin@example.com / password' }, { status: 500 });
+            return NextResponse.json({ message: 'Invalid credentials. Please contact your administrator.' }, { status: 500 });
         }
 
     } catch (error) {

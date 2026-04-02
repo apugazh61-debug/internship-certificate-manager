@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function StipendsPage() {
     const [stipends, setStipends] = useState([]);
@@ -12,11 +13,45 @@ export default function StipendsPage() {
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [newStipend, setNewStipend] = useState({ intern_id: '', amount: '', payment_date: '', notes: '' });
+    const [isVerifying, setIsVerifying] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
-        fetchStipends();
-        fetchInterns();
-    }, []);
+        async function checkRole() {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.user.role !== 'admin') {
+                        router.push('/admin');
+                    } else {
+                        setIsVerifying(false);
+                    }
+                } else {
+                    router.push('/login');
+                }
+            } catch (error) {
+                router.push('/login');
+            }
+        }
+        checkRole();
+    }, [router]);
+
+    useEffect(() => {
+        if (!isVerifying) {
+            fetchStipends();
+            fetchInterns();
+        }
+    }, [isVerifying]);
+
+    if (isVerifying) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p className="text-gray-500 font-medium">Verifying access rights...</p>
+            </div>
+        );
+    }
 
     async function fetchStipends() {
         try {

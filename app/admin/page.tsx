@@ -1,3 +1,5 @@
+'use client';
+
 import { Users, BookOpen, UserCheck, FileText } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
